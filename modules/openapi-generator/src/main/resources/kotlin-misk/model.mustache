@@ -6,7 +6,7 @@ import {{import}}
 {{#models}}
 {{#model}}
 {{#isEnum}}
-enum class {{classname}} {
+enum class {{classname}} {{#vendorExtensions.x-kotlin-implements}}{{#-first}}: {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-kotlin-implements}}{
     {{#allowableValues}}
     {{#enumVars}}
     {{name}}{{^-last}},{{/-last}}
@@ -23,9 +23,9 @@ data class {{classname}}(
     {{#description}}
     /** {{description}} */
     {{/description}}
-    val {{{name}}}: {{{dataType}}}{{^required}}?{{/required}}{{#defaultValue}}{{#isNumber}} = {{{dataType}}}("{{{defaultValue}}}"){{/isNumber}}{{^isNumber}} = {{{defaultValue}}}{{/isNumber}}{{/defaultValue}}{{^defaultValue}}{{^required}} = null{{/required}}{{/defaultValue}}{{^-last}},{{/-last}}
+    {{#isInherited}}override {{/isInherited}}val {{{name}}}: {{{dataType}}}{{^required}}?{{/required}}{{#defaultValue}}{{#isNumber}} = {{{dataType}}}("{{{defaultValue}}}"){{/isNumber}}{{^isNumber}} = {{{defaultValue}}}{{/isNumber}}{{/defaultValue}}{{^defaultValue}}{{^required}} = null{{/required}}{{/defaultValue}}{{^-last}},{{/-last}}
     {{/vars}}
-)
+){{#vendorExtensions.x-kotlin-implements}}{{#-first}} : {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-kotlin-implements}}
 {{/isEnum}}
 {{/model}}
 {{/models}}
