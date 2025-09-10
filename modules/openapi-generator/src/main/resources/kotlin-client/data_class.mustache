@@ -102,7 +102,7 @@ import {{packageName}}.infrastructure.ITransformForStorage
 @SerialName(value = {{#lambda.doublequote}}{{{additionalProperties.discriminatorValue}}}{{/lambda.doublequote}})
 {{/additionalProperties.discriminatorValue}}
 {{/multiplatform}}
-{{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}{{#discriminator}}{{#kotlinx_serialization}}sealed class{{/kotlinx_serialization}}{{#multiplatform}}sealed class{{/multiplatform}}{{^multiplatform}}{{^kotlinx_serialization}}interface{{/kotlinx_serialization}}{{/multiplatform}}{{/discriminator}}{{^discriminator}}{{#hasVars}}data {{/hasVars}}class{{/discriminator}} {{classname}}{{^discriminator}} (
+{{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}{{#discriminator}}{{#kotlinx_serialization}}sealed class{{/kotlinx_serialization}}{{#multiplatform}}sealed class{{/multiplatform}}{{^multiplatform}}{{^kotlinx_serialization}}interface{{/kotlinx_serialization}}{{/multiplatform}}{{/discriminator}}{{^discriminator}}{{#hasVars}}data {{/hasVars}}class{{/discriminator}} {{classname}}{{^discriminator}} {{#vendorExtensions.x-kotlin-implements}}{{#-first}}: {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-kotlin-implements}}(
 
 {{#allVars}}
 {{#required}}{{>data_class_req_var}}{{/required}}{{^required}}{{>data_class_opt_var}}{{/required}}{{^-last}},{{/-last}}
@@ -145,7 +145,7 @@ import {{packageName}}.infrastructure.ITransformForStorage
     {{#multiplatform}}
     @Serializable
     {{/multiplatform}}
-    {{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}enum class {{{nameInPascalCase}}}({{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}val value: {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}) {
+    {{#nonPublicApi}}internal {{/nonPublicApi}}{{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}enum class {{{nameInPascalCase}}}({{^nonPublicApi}}{{#explicitApi}}public {{/explicitApi}}{{/nonPublicApi}}val value: {{^isContainer}}{{dataType}}{{/isContainer}}{{#isContainer}}kotlin.String{{/isContainer}}) {{#vendorExtensions.x-kotlin-implements}}{{#-first}}: {{{.}}}{{/-first}}{{^-first}}, {{{.}}}{{/-first}}{{/vendorExtensions.x-kotlin-implements}}{
     {{#allowableValues}}
     {{#enumVars}}
         {{^multiplatform}}
