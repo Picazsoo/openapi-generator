@@ -196,6 +196,9 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
     // Map from operationId to pageable constraints for @ValidPageable annotation generation
     private Map<String, SpringPageableScanUtils.PageableConstraintsData> pageableConstraintsRegistry = new HashMap<>();
 
+    // Map from operationId to pageable param doc data for @Parameters annotation generation
+    private Map<String, SpringPageableScanUtils.PageableParamsDocData> pageableParamsDocRegistry = new HashMap<>();
+
     public KotlinSpringServerCodegen() {
         super();
 
@@ -525,12 +528,7 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
             importMapping.put("JsonDeserialize", "tools.jackson.databind.annotation.JsonDeserialize");
         }
 
-        // Spring-specific import mappings for x-spring-paginated support
-        importMapping.put("ParameterObject", "org.springdoc.api.annotations.ParameterObject");
-        importMapping.put("PageableAsQueryParam", "org.springdoc.core.converters.models.PageableAsQueryParam");
-        if (useSpringBoot3) {
-            importMapping.put("ParameterObject", "org.springdoc.core.annotations.ParameterObject");
-        }
+        // (ParameterObject and PageableAsQueryParam imports removed — pageable doc is now via explicit @Parameters annotation)
 
         if (!additionalProperties.containsKey(CodegenConstants.LIBRARY)) {
             additionalProperties.put(CodegenConstants.LIBRARY, library);
@@ -982,7 +980,7 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
      * When x-spring-paginated is set to true on an operation, this method:
      * - Adds org.springframework.data.domain.Pageable parameter to the method signature
      * - Removes the default Spring Data Web pagination query parameters (page, size, sort)
-     * - Adds appropriate imports (Pageable, ParameterObject for springdoc)
+     * - Adds appropriate imports (Pageable for springdoc)
      *
      * Auto-detection (when autoXSpringPaginated is enabled):
      * - Automatically detects operations with 'page', 'size', and 'sort' query parameters (case-sensitive)
@@ -1009,8 +1007,6 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
      */
     @Override
     public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, List<io.swagger.v3.oas.models.servers.Server> servers) {
-        // #8315 Spring Data Web default query params recognized by Pageable
-        List<String> defaultPageableQueryParams = Arrays.asList("page", "size", "sort");
 
         CodegenOperation codegenOperation = super.fromOperation(path, httpMethod, operation, servers);
 
@@ -1018,7 +1014,7 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
         boolean hasParamsForPageable = codegenOperation.queryParams.stream()
                 .map(p -> p.baseName)
                 .collect(Collectors.toSet())
-                .containsAll(defaultPageableQueryParams);
+                .containsAll(SpringPageableScanUtils.DEFAULT_PAGEABLE_QUERY_PARAMS);
         // Auto-detect pagination parameters and add x-spring-paginated if autoXSpringPaginated is enabled
         // Only for spring-boot library, respect manual x-spring-paginated: false setting
         if (SPRING_BOOT.equals(library) && autoXSpringPaginated) {
@@ -1050,20 +1046,17 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
             if (operation.getExtensions() != null && Boolean.TRUE.equals(operation.getExtensions().get("x-spring-paginated"))) {
                 codegenOperation.imports.add("Pageable");
                 if (DocumentationProvider.SPRINGDOC.equals(getDocumentationProvider())) {
-                    codegenOperation.imports.add("PageableAsQueryParam");
-                    // Prepend @PageableAsQueryParam to existing x-operation-extra-annotation if present
-                    // Use getObjectAsStringList to properly handle both list and string formats:
-                    // - YAML list: ['@Ann1', '@Ann2'] -> List of annotations
-                    // - Single string: '@Ann1 @Ann2' -> Single-element list
-                    // - Nothing/null -> Empty list
+                    // Build @Parameters(value=[...]) annotation with spec-aware page/size/sort docs
+                    SpringPageableScanUtils.PageableParamsDocData docData =
+                            pageableParamsDocRegistry.get(codegenOperation.operationId);
+                    String parametersAnnotation =
+                            SpringPageableScanUtils.buildPageableParametersAnnotationKotlin(docData);
+
                     Object existingAnnotation = codegenOperation.vendorExtensions.get("x-operation-extra-annotation");
                     List<String> annotations = DefaultCodegen.getObjectAsStringList(existingAnnotation);
-
-                    // Prepend @PageableAsQueryParam to the beginning of the list
                     List<String> updatedAnnotations = new ArrayList<>();
-                    updatedAnnotations.add("@PageableAsQueryParam");
+                    updatedAnnotations.add(parametersAnnotation);
                     updatedAnnotations.addAll(annotations);
-
                     codegenOperation.vendorExtensions.put("x-operation-extra-annotation", updatedAnnotations);
                 }
 
@@ -1114,8 +1107,8 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
                 if (!pageableAnnotations.isEmpty()) {
                     codegenOperation.vendorExtensions.put("x-pageable-extra-annotation", pageableAnnotations);
                 }
-                codegenOperation.queryParams.removeIf(param -> defaultPageableQueryParams.contains(param.baseName));
-                codegenOperation.allParams.removeIf(param -> param.isQueryParam && defaultPageableQueryParams.contains(param.baseName));
+                codegenOperation.queryParams.removeIf(param -> SpringPageableScanUtils.DEFAULT_PAGEABLE_QUERY_PARAMS.contains(param.baseName));
+                codegenOperation.allParams.removeIf(param -> param.isQueryParam && SpringPageableScanUtils.DEFAULT_PAGEABLE_QUERY_PARAMS.contains(param.baseName));
             }
         }
         return codegenOperation;
@@ -1154,6 +1147,10 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
                 importMapping.putIfAbsent("ValidPageable", configPackage + ".ValidPageable");
                 supportingFiles.add(new SupportingFile("validPageable.mustache",
                         (sourceFolder + File.separator + configPackage).replace(".", File.separator), "ValidPageable.kt"));
+            }
+
+            if (DocumentationProvider.SPRINGDOC.equals(getDocumentationProvider())) {
+                pageableParamsDocRegistry = SpringPageableScanUtils.scanPageableParamsDoc(openAPI, autoXSpringPaginated);
             }
         }
 

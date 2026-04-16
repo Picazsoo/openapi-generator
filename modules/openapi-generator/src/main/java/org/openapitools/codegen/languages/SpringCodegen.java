@@ -199,6 +199,8 @@ public class SpringCodegen extends AbstractJavaCodegen
     private Map<String, SpringPageableScanUtils.PageableDefaultsData> pageableDefaultsRegistry = new HashMap<>();
     // Map from operationId to pageable constraints for @ValidPageable annotation generation
     private Map<String, SpringPageableScanUtils.PageableConstraintsData> pageableConstraintsRegistry = new HashMap<>();
+    // Map from operationId to pageable param doc data for @Parameters annotation generation
+    private Map<String, SpringPageableScanUtils.PageableParamsDocData> pageableParamsDocRegistry = new HashMap<>();
 
     public SpringCodegen() {
         super();
@@ -591,10 +593,6 @@ public class SpringCodegen extends AbstractJavaCodegen
         importMapping.put("Nullable", useJspecify? "org.jspecify.annotations.Nullable": "org.springframework.lang.Nullable");
         importMapping.put("org.springframework.core.io.Resource", "org.springframework.core.io.Resource");
         importMapping.put("DateTimeFormat", "org.springframework.format.annotation.DateTimeFormat");
-        importMapping.put("ParameterObject", "org.springdoc.api.annotations.ParameterObject");
-        if (isUseSpringBoot3() || isUseSpringBoot4()) {
-            importMapping.put("ParameterObject", "org.springdoc.core.annotations.ParameterObject");
-        }
 
         if (interfaceOnly && delegatePattern) {
             delegateMethod = true;
@@ -845,6 +843,10 @@ public class SpringCodegen extends AbstractJavaCodegen
                 importMapping.putIfAbsent("SortDefault", "org.springframework.data.web.SortDefault");
                 importMapping.putIfAbsent("Sort", "org.springframework.data.domain.Sort");
             }
+        }
+
+        if (SPRING_BOOT.equals(library) && DocumentationProvider.SPRINGDOC.equals(getDocumentationProvider())) {
+            pageableParamsDocRegistry = SpringPageableScanUtils.scanPageableParamsDoc(openAPI, autoXSpringPaginated);
         }
 
         if (SPRING_BOOT.equals(library) && generatePageableConstraintValidation && useBeanValidation) {
@@ -1186,7 +1188,7 @@ public class SpringCodegen extends AbstractJavaCodegen
                     Set<String> paramNames = operation.getParameters().stream()
                             .map(io.swagger.v3.oas.models.parameters.Parameter::getName)
                             .collect(Collectors.toSet());
-                    if (paramNames.containsAll(Arrays.asList("page", "size", "sort"))) {
+                    if (paramNames.containsAll(SpringPageableScanUtils.DEFAULT_PAGEABLE_QUERY_PARAMS)) {
                         if (operation.getExtensions() == null) {
                             operation.setExtensions(new HashMap<>());
                         }
@@ -1212,18 +1214,26 @@ public class SpringCodegen extends AbstractJavaCodegen
         // add org.springframework.data.domain.Pageable import when needed
         if (codegenOperation.vendorExtensions.containsKey("x-spring-paginated")) {
             codegenOperation.imports.add("Pageable");
-            if (DocumentationProvider.SPRINGDOC.equals(getDocumentationProvider())) {
-                codegenOperation.imports.add("ParameterObject");
-            }
-
-            // #8315 Spring Data Web default query params recognized by Pageable
-            List<String> defaultPageableQueryParams = new ArrayList<>(
-                Arrays.asList("page", "size", "sort")
-            );
 
             // #8315 Remove matching Spring Data Web default query params if 'x-spring-paginated' with Pageable is used
-            codegenOperation.queryParams.removeIf(param -> defaultPageableQueryParams.contains(param.baseName));
-            codegenOperation.allParams.removeIf(param -> param.isQueryParam && defaultPageableQueryParams.contains(param.baseName));
+            codegenOperation.queryParams.removeIf(param -> SpringPageableScanUtils.DEFAULT_PAGEABLE_QUERY_PARAMS.contains(param.baseName));
+            codegenOperation.allParams.removeIf(param -> param.isQueryParam && SpringPageableScanUtils.DEFAULT_PAGEABLE_QUERY_PARAMS.contains(param.baseName));
+
+            // When springdoc is active, emit @Parameters({@Parameter(...),...}) at the method level
+            // documenting page/size/sort with their spec metadata (description, default, min/max, required, sort enums)
+            if (DocumentationProvider.SPRINGDOC.equals(getDocumentationProvider())) {
+                SpringPageableScanUtils.PageableParamsDocData docData =
+                        pageableParamsDocRegistry.get(codegenOperation.operationId);
+                String parametersAnnotation =
+                        SpringPageableScanUtils.buildPageableParametersAnnotationJava(docData);
+
+                Object existingAnnotation = codegenOperation.vendorExtensions.get("x-operation-extra-annotation");
+                List<String> annotations = DefaultCodegen.getObjectAsStringList(existingAnnotation);
+                List<String> updatedAnnotations = new ArrayList<>();
+                updatedAnnotations.add(parametersAnnotation);
+                updatedAnnotations.addAll(annotations);
+                codegenOperation.vendorExtensions.put("x-operation-extra-annotation", updatedAnnotations);
+            }
 
             // Build pageable parameter annotations (@ValidPageable, @ValidSort, @PageableDefault, @SortDefault.SortDefaults)
             List<String> pageableAnnotations = new ArrayList<>();

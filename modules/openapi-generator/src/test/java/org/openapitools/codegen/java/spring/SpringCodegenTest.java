@@ -2520,11 +2520,14 @@ public class SpringCodegenTest {
         Map<String, File> files = generateFromContract("src/test/resources/2_0/petstore-with-spring-pageable.yaml", SPRING_BOOT, additionalProperties);
 
         JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .hasImports("org.springdoc.api.annotations.ParameterObject")
+                .hasNoImports("org.springdoc.api.annotations.ParameterObject")
                 .assertMethod("findPetsByStatus")
                 .assertParameter("pageable").hasType("Pageable")
                 .assertParameterAnnotations()
-                .containsWithName("ParameterObject");
+                .containsWithNameAndAttributes("Parameter", ImmutableMap.of("hidden", "true"));
+
+        assertFileContains(files.get("PetApi.java").toPath(), "@Parameters({");
+        assertFileContains(files.get("PetApi.java").toPath(), "@Parameter(hidden = true) final Pageable pageable");
 
 
         // different import for SB3
@@ -2532,11 +2535,15 @@ public class SpringCodegenTest {
         files = generateFromContract("src/test/resources/2_0/petstore-with-spring-pageable.yaml", SPRING_BOOT, additionalProperties);
 
         JavaFileAssert.assertThat(files.get("PetApi.java"))
-                .hasImports("org.springdoc.core.annotations.ParameterObject", "org.springframework.data.domain.Pageable")
+                .hasNoImports("org.springdoc.core.annotations.ParameterObject")
+                .hasImports("org.springframework.data.domain.Pageable")
                 .assertMethod("findPetsByStatus")
                 .assertParameter("pageable").hasType("Pageable")
                 .assertParameterAnnotations()
-                .containsWithName("ParameterObject");
+                .containsWithNameAndAttributes("Parameter", ImmutableMap.of("hidden", "true"));
+
+        assertFileContains(files.get("PetApi.java").toPath(), "@Parameters({");
+        assertFileContains(files.get("PetApi.java").toPath(), "@Parameter(hidden = true) final Pageable pageable");
     }
 
     @Test

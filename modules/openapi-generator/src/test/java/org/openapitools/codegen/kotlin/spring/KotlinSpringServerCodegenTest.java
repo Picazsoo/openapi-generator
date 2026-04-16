@@ -3719,6 +3719,8 @@ public class KotlinSpringServerCodegenTest {
         assertFileContains(petApi.toPath(), "import org.springframework.data.domain.Pageable");
         assertFileContains(petApi.toPath(), "pageable: Pageable");
         assertFileContains(petApi.toPath(), "@Parameter(hidden = true) pageable: Pageable");
+        assertFileContains(petApi.toPath(), "@Parameters(value = [");
+        assertFileNotContains(petApi.toPath(), "@PageableAsQueryParam");
     }
 
     @Test
@@ -3735,6 +3737,8 @@ public class KotlinSpringServerCodegenTest {
         File petApi = files.get("PetApi.kt");
         assertFileContains(petApi.toPath(), "import org.springframework.data.domain.Pageable");
         assertFileContains(petApi.toPath(), "pageable: Pageable");
+        assertFileContains(petApi.toPath(), "@Parameters(value = [");
+        assertFileNotContains(petApi.toPath(), "@PageableAsQueryParam");
     }
 
     @Test
@@ -3877,9 +3881,10 @@ public class KotlinSpringServerCodegenTest {
         File petApi = files.get("PetApi.kt");
         String content = Files.readString(petApi.toPath());
 
-        // Verify @PageableAsQueryParam annotation is present at method level
-        assertFileContains(petApi.toPath(), "import org.springdoc.core.converters.models.PageableAsQueryParam");
-        assertFileContains(petApi.toPath(), "@PageableAsQueryParam");
+        // Verify @Parameters annotation is present at method level (replacing @PageableAsQueryParam)
+        assertFileContains(petApi.toPath(), "@Parameters(value = [");
+        assertFileNotContains(petApi.toPath(), "@PageableAsQueryParam");
+        assertFileNotContains(petApi.toPath(), "import org.springdoc.core.converters.models.PageableAsQueryParam");
 
         // Verify Pageable parameter has @Parameter(hidden = true)
         assertFileContains(petApi.toPath(), "@Parameter(hidden = true) pageable: Pageable");
@@ -3889,12 +3894,12 @@ public class KotlinSpringServerCodegenTest {
         Assert.assertTrue(findPetsByStatusStart > 0, "findPetsByStatus method should exist");
 
         String methodBlock = content.substring(Math.max(0, findPetsByStatusStart - 1000), findPetsByStatusStart);
-        int pageableAsQueryParamPos = methodBlock.lastIndexOf("@PageableAsQueryParam");
+        int parametersAnnotationPos = methodBlock.lastIndexOf("@Parameters(value = [");
         int requestMappingPos = methodBlock.lastIndexOf("@RequestMapping");
 
-        Assert.assertTrue(pageableAsQueryParamPos > 0, "@PageableAsQueryParam should be present before method");
-        Assert.assertTrue(requestMappingPos > pageableAsQueryParamPos,
-            "@PageableAsQueryParam should appear before @RequestMapping");
+        Assert.assertTrue(parametersAnnotationPos > 0, "@Parameters should be present before method");
+        Assert.assertTrue(requestMappingPos > parametersAnnotationPos,
+            "@Parameters should appear before @RequestMapping");
 
         // Verify page, size, sort parameters are NOT in the method signature
         String methodSignature = content.substring(findPetsByStatusStart,
@@ -3935,8 +3940,9 @@ public class KotlinSpringServerCodegenTest {
         File petApi = files.get("PetApi.kt");
         String content = Files.readString(petApi.toPath());
 
-        // Verify that both annotations are imported
-        assertFileContains(petApi.toPath(), "import org.springdoc.core.converters.models.PageableAsQueryParam");
+        // Verify that @Parameters is present (replacing @PageableAsQueryParam)
+        assertFileContains(petApi.toPath(), "@Parameters(value = [");
+        assertFileNotContains(petApi.toPath(), "import org.springdoc.core.converters.models.PageableAsQueryParam");
         assertFileContains(petApi.toPath(), "import org.springframework.validation.annotation.Validated");
 
         // Find the listAllPets method
@@ -3946,16 +3952,16 @@ public class KotlinSpringServerCodegenTest {
         // Check the annotations appear before the method in the correct order
         String methodBlock = content.substring(Math.max(0, listAllPetsStart - 1000), listAllPetsStart);
 
-        int pageableAsQueryParamPos = methodBlock.lastIndexOf("@PageableAsQueryParam");
+        int parametersAnnotationPos = methodBlock.lastIndexOf("@Parameters(value = [");
         int validatedPos = methodBlock.lastIndexOf("@org.springframework.validation.annotation.Validated");
         int requestMappingPos = methodBlock.lastIndexOf("@RequestMapping");
 
-        Assert.assertTrue(pageableAsQueryParamPos > 0, "@PageableAsQueryParam should be present before listAllPets method");
+        Assert.assertTrue(parametersAnnotationPos > 0, "@Parameters should be present before listAllPets method");
         Assert.assertTrue(validatedPos > 0, "@Validated should be present before listAllPets method");
 
-        // Verify @PageableAsQueryParam comes before @Validated (prepended)
-        Assert.assertTrue(pageableAsQueryParamPos < validatedPos,
-            "@PageableAsQueryParam should be prepended (appear before) existing @Validated annotation");
+        // Verify @Parameters comes before @Validated (prepended)
+        Assert.assertTrue(parametersAnnotationPos < validatedPos,
+            "@Parameters should be prepended (appear before) existing @Validated annotation");
 
         // Verify both annotations come before @RequestMapping
         Assert.assertTrue(validatedPos < requestMappingPos,
@@ -3978,8 +3984,9 @@ public class KotlinSpringServerCodegenTest {
         File petApi = files.get("PetApi.kt");
         String content = Files.readString(petApi.toPath());
 
-        // Verify that PageableAsQueryParam is imported
-        assertFileContains(petApi.toPath(), "import org.springdoc.core.converters.models.PageableAsQueryParam");
+        // Verify that @Parameters is present (replacing @PageableAsQueryParam)
+        assertFileContains(petApi.toPath(), "@Parameters(value = [");
+        assertFileNotContains(petApi.toPath(), "import org.springdoc.core.converters.models.PageableAsQueryParam");
 
         // Find the findPetsByStatus method
         int findPetsByStatusStart = content.indexOf("fun findPetsByStatus(");
@@ -3988,20 +3995,20 @@ public class KotlinSpringServerCodegenTest {
         // Check the annotations appear before the method in the correct order
         String methodBlock = content.substring(Math.max(0, findPetsByStatusStart - 1500), findPetsByStatusStart);
 
-        int pageableAsQueryParamPos = methodBlock.lastIndexOf("@PageableAsQueryParam");
+        int parametersAnnotationPos = methodBlock.lastIndexOf("@Parameters(value = [");
         int validatedPos = methodBlock.lastIndexOf("@org.springframework.validation.annotation.Validated");
         int preAuthorizePos = methodBlock.lastIndexOf("@org.springframework.security.access.prepost.PreAuthorize");
         int requestMappingPos = methodBlock.lastIndexOf("@RequestMapping");
 
-        Assert.assertTrue(pageableAsQueryParamPos > 0, "@PageableAsQueryParam should be present before findPetsByStatus method");
+        Assert.assertTrue(parametersAnnotationPos > 0, "@Parameters should be present before findPetsByStatus method");
         Assert.assertTrue(validatedPos > 0, "@Validated should be present before findPetsByStatus method");
         Assert.assertTrue(preAuthorizePos > 0, "@PreAuthorize should be present before findPetsByStatus method");
 
-        // Verify @PageableAsQueryParam comes first (prepended to the array)
-        Assert.assertTrue(pageableAsQueryParamPos < validatedPos,
-            "@PageableAsQueryParam should be prepended (appear before) @Validated annotation");
+        // Verify @Parameters comes first (prepended to the array)
+        Assert.assertTrue(parametersAnnotationPos < validatedPos,
+            "@Parameters should be prepended (appear before) @Validated annotation");
 
-        // Verify the original array order is preserved after @PageableAsQueryParam
+        // Verify the original array order is preserved after @Parameters
         Assert.assertTrue(validatedPos < preAuthorizePos,
             "@Validated should appear before @PreAuthorize (original array order preserved)");
 
