@@ -57,6 +57,12 @@ public class CodegenConfigurator {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(CodegenConfigurator.class);
 
+    // swagger-parser's OAS 3.1 dereferencer (OpenAPIDereferencer31) is a singleton with mutable
+    // instance state, making concurrent spec parsing unsafe. This lock serializes readLocation()
+    // calls to avoid cross-contamination of OpenAPI objects between concurrent generators (e.g.
+    // GenerateBatch thread pool or parallel Maven module builds in mvnd).
+    public static final Object SPEC_PARSE_LOCK = new Object();
+
     private GeneratorSettings.Builder generatorSettingsBuilder = GeneratorSettings.newBuilder();
     private WorkflowSettings.Builder workflowSettingsBuilder = WorkflowSettings.newBuilder();
 
@@ -684,7 +690,14 @@ public class CodegenConfigurator {
         ParseOptions options = new ParseOptions();
         options.setResolve(true);
         options.setResolveResponses(true);
-        SwaggerParseResult result = new OpenAPIParser().readLocation(inputSpec, authorizationValues, options);
+        // Serialize spec parsing: swagger-parser's OAS 3.1 dereferencer singleton (OpenAPIDereferencer31)
+        // has mutable instance fields (openAPI, result) written during dereference(). Concurrent calls
+        // from GenerateBatch threads race on those fields, causing one generator to receive another's
+        // OpenAPI object. Serializing readLocation() here prevents that cross-contamination.
+        SwaggerParseResult result;
+        synchronized (SPEC_PARSE_LOCK) {
+            result = new OpenAPIParser().readLocation(inputSpec, authorizationValues, options);
+        }
 
         // TODO: Move custom validations to a separate type as part of a "Workflow"
         Set<String> validationMessages = new HashSet<>(null != result.getMessages() ? result.getMessages() : new ArrayList<>());
