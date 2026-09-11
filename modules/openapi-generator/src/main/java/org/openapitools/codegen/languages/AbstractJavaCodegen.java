@@ -28,7 +28,6 @@ import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
@@ -2340,26 +2339,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         if (openAPI == null) {
             return;
         }
-        if (openAPI.getPaths() != null) {
-            for (Map.Entry<String, PathItem> openAPIGetPathsEntry : openAPI.getPaths().entrySet()) {
-                String pathname = openAPIGetPathsEntry.getKey();
-                PathItem path = openAPIGetPathsEntry.getValue();
-                if (path.readOperations() == null) {
-                    continue;
-                }
-                for (Operation operation : path.readOperations()) {
-                    LOGGER.info("Processing operation {}", operation.getOperationId());
-                    if (hasBodyParameter(operation) || hasFormParameter(operation)) {
-                        String defaultContentType = hasFormParameter(operation) ? "application/x-www-form-urlencoded" : "application/json";
-                        List<String> consumes = new ArrayList<>(getConsumesInfo(openAPI, operation));
-                        String contentType = consumes.isEmpty() ? defaultContentType : consumes.get(0);
-                        operation.addExtension("x-content-type", contentType);
-                    }
-                    String[] accepts = getAccepts(openAPI, operation);
-                    operation.addExtension("x-accepts", accepts);
-                }
-            }
-        }
+        addHttpInterfaceMediaTypeExtensions(openAPI);
 
         // TODO: Setting additionalProperties is not the responsibility of this method. These side-effects should be moved elsewhere to prevent unexpected behaviors.
         if (artifactVersion == null) {
@@ -2404,14 +2384,6 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
                                     .findFirst()
                                     .orElse((Schema) s)));
         }
-    }
-
-    private static String[] getAccepts(OpenAPI openAPIArg, Operation operation) {
-        final Set<String> producesInfo = getProducesInfo(openAPIArg, operation);
-        if (producesInfo != null && !producesInfo.isEmpty()) {
-            return producesInfo.toArray(new String[]{});
-        }
-        return new String[]{"application/json"}; // default media type
     }
 
     @Override

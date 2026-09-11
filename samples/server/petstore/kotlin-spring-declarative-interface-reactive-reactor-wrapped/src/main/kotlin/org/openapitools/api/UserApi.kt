@@ -31,7 +31,9 @@ interface UserApi {
     @HttpExchange(
         // "/user"
         url = PATH_CREATE_USER,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json"],
+        contentType = "application/json"
     )
     fun createUser(
         @Parameter(description = "Created user object", required = true) @Valid @RequestBody user: User
@@ -41,7 +43,9 @@ interface UserApi {
     @HttpExchange(
         // "/user/createWithArray"
         url = PATH_CREATE_USERS_WITH_ARRAY_INPUT,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json"],
+        contentType = "application/json"
     )
     fun createUsersWithArrayInput(
         @Parameter(description = "List of user object", required = true) @Valid @RequestBody user: kotlin.collections.List<User>
@@ -51,7 +55,9 @@ interface UserApi {
     @HttpExchange(
         // "/user/createWithList"
         url = PATH_CREATE_USERS_WITH_LIST_INPUT,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json"],
+        contentType = "application/json"
     )
     fun createUsersWithListInput(
         @Parameter(description = "List of user object", required = true) @Valid @RequestBody user: kotlin.collections.List<User>
@@ -61,7 +67,8 @@ interface UserApi {
     @HttpExchange(
         // "/user/{username}"
         url = PATH_DELETE_USER,
-        method = "DELETE"
+        method = "DELETE",
+        accept = ["application/json"]
     )
     fun deleteUser(
         @Parameter(description = "The name that needs to be deleted", required = true) @PathVariable("username") username: kotlin.String
@@ -71,7 +78,8 @@ interface UserApi {
     @HttpExchange(
         // "/user/{username}"
         url = PATH_GET_USER_BY_NAME,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json", "application/xml"]
     )
     fun getUserByName(
         @Parameter(description = "The name that needs to be fetched. Use user1 for testing.", required = true) @PathVariable("username") username: kotlin.String
@@ -81,7 +89,8 @@ interface UserApi {
     @HttpExchange(
         // "/user/login"
         url = PATH_LOGIN_USER,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json", "application/xml"]
     )
     fun loginUser(
         @NotNull @Pattern(regexp="^[a-zA-Z0-9]+[a-zA-Z0-9\\.\\-_]*[a-zA-Z0-9]+$") @Parameter(description = "The user name for login", required = true) @Valid @RequestParam(value = "username", required = true) username: kotlin.String,
@@ -92,7 +101,8 @@ interface UserApi {
     @HttpExchange(
         // "/user/logout"
         url = PATH_LOGOUT_USER,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json"]
     )
     fun logoutUser(
     ): Mono<ResponseEntity<Unit>>
@@ -101,7 +111,9 @@ interface UserApi {
     @HttpExchange(
         // "/user/{username}"
         url = PATH_UPDATE_USER,
-        method = "PUT"
+        method = "PUT",
+        accept = ["application/json"],
+        contentType = "application/json"
     )
     fun updateUser(
         @Parameter(description = "name that need to be deleted", required = true) @PathVariable("username") username: kotlin.String,

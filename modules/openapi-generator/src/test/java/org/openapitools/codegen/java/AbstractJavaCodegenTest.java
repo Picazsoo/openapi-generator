@@ -20,6 +20,7 @@ package org.openapitools.codegen.java;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.*;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -128,8 +129,33 @@ public class AbstractJavaCodegenTest {
         Assert.assertEquals(codegen.getArtifactVersion(), openAPI.getInfo().getVersion());
 
         Object xAccepts = openAPI.getPaths().get("/pet").getPost().getExtensions().get("x-accepts");
-        Assert.assertTrue(xAccepts instanceof String[]);
-        Assert.assertTrue(List.of((String[]) xAccepts).containsAll(List.of("application/json", "application/xml")));
+        Assert.assertTrue(xAccepts instanceof List);
+        Assert.assertTrue(((List<?>) xAccepts).containsAll(List.of("application/json", "application/xml")));
+    }
+
+    @Test
+    public void testPreprocessOpenApiPreservesExplicitMediaTypeExtensions() {
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore.yaml");
+        Operation operation = openAPI.getPaths().get("/pet").getPost();
+        operation.addExtension("x-content-type", "application/vnd.pet+json");
+        operation.addExtension("x-accepts", "application/vnd.pet+json");
+
+        codegen.preprocessOpenAPI(openAPI);
+        codegen.preprocessOpenAPI(openAPI);
+
+        assertThat(operation.getExtensions().get("x-content-type"))
+                .isEqualTo("application/vnd.pet+json");
+        assertThat(operation.getExtensions().get("x-accepts"))
+                .isEqualTo(List.of("application/vnd.pet+json"));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class,
+            expectedExceptionsMessageRegExp = ".*x-content-type extension.*")
+    public void testPreprocessOpenApiRejectsInvalidExplicitContentType() {
+        final OpenAPI openAPI = TestUtils.parseFlattenSpec("src/test/resources/3_0/petstore.yaml");
+        openAPI.getPaths().get("/pet").getPost().addExtension("x-content-type", List.of("application/json"));
+
+        codegen.preprocessOpenAPI(openAPI);
     }
 
     @Test

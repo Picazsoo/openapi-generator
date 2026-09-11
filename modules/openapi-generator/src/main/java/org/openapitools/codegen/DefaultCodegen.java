@@ -7604,6 +7604,47 @@ public class DefaultCodegen implements CodegenConfig {
         }
     }
 
+    protected void addHttpInterfaceMediaTypeExtensions(OpenAPI openAPI) {
+        if (openAPI == null || openAPI.getPaths() == null) {
+            return;
+        }
+
+        for (PathItem path : openAPI.getPaths().values()) {
+            if (path == null || path.readOperations() == null) {
+                continue;
+            }
+
+            for (Operation operation : path.readOperations()) {
+                Map<String, Object> extensions = operation.getExtensions();
+                if (extensions == null || !extensions.containsKey("x-content-type")) {
+                    if (hasBodyParameter(operation) || hasFormParameter(operation)) {
+                        String defaultContentType = hasFormParameter(operation)
+                                ? "application/x-www-form-urlencoded"
+                                : "application/json";
+                        List<String> consumes = new ArrayList<>(getConsumesInfo(openAPI, operation));
+                        operation.addExtension("x-content-type",
+                                consumes.isEmpty() ? defaultContentType : consumes.get(0));
+                    }
+                } else {
+                    Object contentType = extensions.get("x-content-type");
+                    if (!(contentType instanceof String) || StringUtils.isBlank((String) contentType)) {
+                        throw new IllegalArgumentException("Operation '" + operation.getOperationId()
+                                + "' has an invalid x-content-type extension. Expected a non-blank string.");
+                    }
+                }
+
+                extensions = operation.getExtensions();
+                if (extensions == null || !extensions.containsKey("x-accepts")) {
+                    Set<String> produces = getProducesInfo(openAPI, operation);
+                    operation.addExtension("x-accepts", produces == null || produces.isEmpty()
+                            ? Collections.singletonList("application/json")
+                            : new ArrayList<>(produces));
+                }
+                normalizeVendorExtensionWithStringList(operation.getExtensions(), "x-accepts");
+            }
+        }
+    }
+
     public static Set<String> getConsumesInfo(OpenAPI openAPI, Operation operation) {
         RequestBody requestBody = ModelUtils.getReferencedRequestBody(openAPI, operation.getRequestBody());
 

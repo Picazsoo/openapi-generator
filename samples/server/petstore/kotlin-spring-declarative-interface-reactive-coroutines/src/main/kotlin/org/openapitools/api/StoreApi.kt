@@ -31,7 +31,8 @@ interface StoreApi {
     @HttpExchange(
         // "/store/order/{orderId}"
         url = PATH_DELETE_ORDER,
-        method = "DELETE"
+        method = "DELETE",
+        accept = ["application/json"]
     )
     suspend fun deleteOrder(
         @Parameter(description = "ID of the order that needs to be deleted", required = true) @PathVariable("orderId") orderId: kotlin.String
@@ -41,7 +42,8 @@ interface StoreApi {
     @HttpExchange(
         // "/store/inventory"
         url = PATH_GET_INVENTORY,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json"]
     )
     suspend fun getInventory(
     ): Map<String, kotlin.Int>
@@ -51,7 +53,8 @@ interface StoreApi {
     @HttpExchange(
         // "/store/order/{orderId}"
         url = PATH_GET_ORDER_BY_ID,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json", "application/xml"]
     )
     suspend fun getOrderById(
         @Min(value=1L) @Max(value=5L) @Parameter(description = "ID of pet that needs to be fetched", required = true) @PathVariable("orderId") orderId: kotlin.Long
@@ -61,7 +64,9 @@ interface StoreApi {
     @HttpExchange(
         // "/store/order"
         url = PATH_PLACE_ORDER,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json", "application/xml"],
+        contentType = "application/json"
     )
     suspend fun placeOrder(
         @Parameter(description = "order placed for purchasing the pet", required = true) @Valid @RequestBody order: Order

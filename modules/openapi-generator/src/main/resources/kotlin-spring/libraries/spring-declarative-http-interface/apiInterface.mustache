@@ -67,7 +67,9 @@ interface {{classname}} {
 }}{{#httpMethod}}    @HttpExchange(
         // "{{#lambdaEscapeInNormalString}}{{{path}}}{{/lambdaEscapeInNormalString}}"
         url = PATH_{{#lambda.uppercase}}{{#lambda.snakecase}}{{{operationId}}}{{/lambda.snakecase}}{{/lambda.uppercase}},
-        method = "{{httpMethod}}"
+        method = "{{httpMethod}}",
+        accept = [{{#vendorExtensions.x-accepts}}"{{{.}}}"{{^-last}}, {{/-last}}{{/vendorExtensions.x-accepts}}]{{#vendorExtensions.x-content-type}},
+        contentType = "{{{vendorExtensions.x-content-type}}}"{{/vendorExtensions.x-content-type}}
     )
     {{/httpMethod}}{{!
     }}{{#reactiveModeCoroutines}}suspend {{/reactiveModeCoroutines}}{{!

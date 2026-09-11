@@ -32,7 +32,9 @@ interface PetApi {
     @HttpExchange(
         // "/pet"
         url = PATH_ADD_PET,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json", "application/xml"],
+        contentType = "application/json"
     )
     fun addPet(
         @Parameter(description = "Pet object that needs to be added to the store", required = true) @Valid @RequestBody pet: Pet
@@ -42,7 +44,8 @@ interface PetApi {
     @HttpExchange(
         // "/pet/{petId}"
         url = PATH_DELETE_PET,
-        method = "DELETE"
+        method = "DELETE",
+        accept = ["application/json"]
     )
     fun deletePet(
         @Parameter(description = "Pet id to delete", required = true) @PathVariable("petId") petId: kotlin.Long,
@@ -53,7 +56,8 @@ interface PetApi {
     @HttpExchange(
         // "/pet/findByStatus"
         url = PATH_FIND_PETS_BY_STATUS,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json", "application/xml"]
     )
     fun findPetsByStatus(
         @NotNull @Parameter(description = "Status values that need to be considered for filter", required = true, schema = Schema(allowableValues = ["available", "pending", "sold"])) @Valid @RequestParam(value = "status", required = true) status: kotlin.collections.List<kotlin.String>
@@ -63,7 +67,8 @@ interface PetApi {
     @HttpExchange(
         // "/pet/findByTags"
         url = PATH_FIND_PETS_BY_TAGS,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json", "application/xml"]
     )
     fun findPetsByTags(
         @NotNull @Parameter(description = "Tags to filter by", required = true) @Valid @RequestParam(value = "tags", required = true) tags: kotlin.collections.List<kotlin.String>
@@ -73,7 +78,8 @@ interface PetApi {
     @HttpExchange(
         // "/pet/{petId}"
         url = PATH_GET_PET_BY_ID,
-        method = "GET"
+        method = "GET",
+        accept = ["application/json", "application/xml"]
     )
     fun getPetById(
         @Parameter(description = "ID of pet to return", required = true) @PathVariable("petId") petId: kotlin.Long
@@ -83,7 +89,9 @@ interface PetApi {
     @HttpExchange(
         // "/pet"
         url = PATH_UPDATE_PET,
-        method = "PUT"
+        method = "PUT",
+        accept = ["application/json", "application/xml"],
+        contentType = "application/json"
     )
     fun updatePet(
         @Parameter(description = "Pet object that needs to be added to the store", required = true) @Valid @RequestBody pet: Pet
@@ -93,7 +101,9 @@ interface PetApi {
     @HttpExchange(
         // "/pet/{petId}"
         url = PATH_UPDATE_PET_WITH_FORM,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json"],
+        contentType = "application/x-www-form-urlencoded"
     )
     fun updatePetWithForm(
         @Parameter(description = "ID of pet that needs to be updated", required = true) @PathVariable("petId") petId: kotlin.Long,
@@ -105,7 +115,9 @@ interface PetApi {
     @HttpExchange(
         // "/pet/{petId}/uploadImage"
         url = PATH_UPLOAD_FILE,
-        method = "POST"
+        method = "POST",
+        accept = ["application/json"],
+        contentType = "multipart/form-data"
     )
     fun uploadFile(
         @Parameter(description = "ID of pet to update", required = true) @PathVariable("petId") petId: kotlin.Long,

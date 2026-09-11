@@ -1212,6 +1212,10 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
     public void preprocessOpenAPI(OpenAPI openAPI) {
         super.preprocessOpenAPI(openAPI);
 
+        if (SPRING_DECLARATIVE_HTTP_INTERFACE_LIBRARY.equals(library)) {
+            addHttpInterfaceMediaTypeExtensions(openAPI);
+        }
+
         if (SPRING_BOOT.equals(library) && ModelUtils.containsEnums(this.openAPI)) {
             supportingFiles.add(new SupportingFile("converter.mustache",
                 (sourceFolder + File.separator + configPackage).replace(".", java.io.File.separator), "EnumConverterConfiguration.kt"));

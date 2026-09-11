@@ -1422,14 +1422,16 @@ public class KotlinSpringServerCodegenTest {
                 "    @HttpExchange(\n"
                         + "        // \"/store/inventory\"\n"
                         + "        url = PATH_GET_INVENTORY,\n"
-                        + "        method = \"GET\"\n"
+                        + "        method = \"GET\",\n"
+                        + "        accept = [\"application/json\"]\n"
                         + "    )\n"
                         + "    fun getInventory(\n"
                         + "    ): Mono<ResponseEntity<Map<String, kotlin.Int>>>",
                 "    @HttpExchange(\n"
                         + "        // \"/store/order/{orderId}\"\n"
                         + "        url = PATH_DELETE_ORDER,\n"
-                        + "        method = \"DELETE\"\n"
+                        + "        method = \"DELETE\",\n"
+                        + "        accept = [\"application/json\"]\n"
                         + "    )\n"
                         + "    fun deleteOrder(\n"
                         + "        @Parameter(description = \"ID of the order that needs to be deleted\", required = true) @PathVariable(\"orderId\") orderId: kotlin.String\n"
@@ -1437,7 +1439,9 @@ public class KotlinSpringServerCodegenTest {
                 "    @HttpExchange(\n"
                         + "        // \"/store/order\"\n"
                         + "        url = PATH_PLACE_ORDER,\n"
-                        + "        method = \"POST\"\n"
+                        + "        method = \"POST\",\n"
+                        + "        accept = [\"application/json\", \"application/xml\"],\n"
+                        + "        contentType = \"application/json\"\n"
                         + "    )\n"
                         + "    fun placeOrder(\n"
                         + "        @Parameter(description = \"order placed for purchasing the pet\", required = true) @Valid @RequestBody order: Order\n"
@@ -1495,9 +1499,49 @@ public class KotlinSpringServerCodegenTest {
                         + "    @HttpExchange(\n"
                         + "        // \"/store/inventory\"\n"
                         + "        url = PATH_GET_INVENTORY,\n"
-                        + "        method = \"GET\"\n"
+                        + "        method = \"GET\",\n"
+                        + "        accept = [\"application/json\"]\n"
                         + "    )\n"
                         + "    fun getInventory("
+        );
+    }
+
+    @Test
+    public void generateHttpInterfacePreservesExplicitMediaTypeExtensions() throws Exception {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+        String outputPath = output.getAbsolutePath().replace('\\', '/');
+
+        OpenAPI openAPI = TestUtils.parseSpec("src/test/resources/3_0/kotlin/petstore.yaml");
+        Operation getInventory = openAPI.getPaths().get("/store/inventory").getGet();
+        getInventory.addExtension("x-accepts", "application/vnd.inventory+json");
+        Operation placeOrder = openAPI.getPaths().get("/store/order").getPost();
+        placeOrder.addExtension("x-accepts", List.of("application/vnd.order+json", "application/json"));
+        placeOrder.addExtension("x-content-type", "application/vnd.order+json");
+
+        KotlinSpringServerCodegen codegen = new KotlinSpringServerCodegen();
+        codegen.setOutputDir(output.getAbsolutePath());
+        codegen.additionalProperties().put(CodegenConstants.LIBRARY, "spring-declarative-http-interface");
+
+        DefaultGenerator generator = new DefaultGenerator();
+        generator.setGenerateMetadata(false);
+        generator.setGeneratorPropertyDefault(CodegenConstants.MODELS, "false");
+        generator.setGeneratorPropertyDefault(CodegenConstants.MODEL_TESTS, "false");
+        generator.setGeneratorPropertyDefault(CodegenConstants.MODEL_DOCS, "false");
+        generator.setGeneratorPropertyDefault(CodegenConstants.APIS, "true");
+        generator.setGeneratorPropertyDefault(CodegenConstants.SUPPORTING_FILES, "false");
+        generator.opts(new ClientOptInput().openAPI(openAPI).config(codegen)).generate();
+
+        Path path = Paths.get(outputPath + "/src/main/kotlin/org/openapitools/api/StoreApi.kt");
+        assertFileContains(
+                path,
+                "        url = PATH_GET_INVENTORY,\n"
+                        + "        method = \"GET\",\n"
+                        + "        accept = [\"application/vnd.inventory+json\"]",
+                "        url = PATH_PLACE_ORDER,\n"
+                        + "        method = \"POST\",\n"
+                        + "        accept = [\"application/vnd.order+json\", \"application/json\"],\n"
+                        + "        contentType = \"application/vnd.order+json\""
         );
     }
 
